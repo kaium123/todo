@@ -2,13 +2,15 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"go.uber.org/zap"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	log "github.com/zuu-development/fullstack-examination-2024/internal/log"
 	"github.com/zuu-development/fullstack-examination-2024/internal/server"
 )
 
@@ -19,57 +21,66 @@ func init() {
 // NewServerCmd returns a new `server` command to be used as a sub-command to root
 func NewServerCmd() *cobra.Command {
 	serverCmd := cobra.Command{
-		Use:   "server",
-		Short: "Print version information",
-		Example: `  # Print the full version of client and server to stdout
-  todo-cli server
-`,
+		Use:     "server",
+		Short:   "Print version information",
+		Example: `  # Print the full version of client and server to stdout todo-cli server `,
 		Run: func(_ *cobra.Command, _ []string) {
 			var servers []server.Server
 
-			apiOpts := server.TodoAPIServerOpts{
-				ListenPort: cfg.APIServer.Port,
-				Config:     cfg,
+			logger := log.New()
+			ctx := context.Background()
+
+			initNewAPI := &server.InitNewAPI{
+				TodoAPIServerOpts: server.TodoAPIServerOpts{
+					ListenPort: cfg.APIServer.Port,
+					Config:     cfg,
+				},
+				Log: logger,
 			}
-			apiServer, err := server.NewAPI(apiOpts)
+
+			apiServer, err := server.NewAPI(ctx, initNewAPI)
 			if err != nil {
-				log.Fatal(err)
+				logger.Fatal(ctx, "failed to init api.", zap.Error(err))
 			}
 			servers = append(servers, apiServer)
 
 			if cfg.SwaggerServer.Enable {
-				SwaggerOpts := server.SwaggerServerOpts{
-					ListenPort: cfg.SwaggerServer.Port,
+				initNewSwagger := server.InitNewSwagger{
+					SwaggerServerOpts: server.SwaggerServerOpts{
+						ListenPort: cfg.SwaggerServer.Port,
+					},
+					Log: logger,
 				}
-				swagServer := server.NewSwagger(SwaggerOpts)
+
+				swagServer := server.NewSwagger(ctx, initNewSwagger)
 				servers = append(servers, swagServer)
 			}
 
-			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+			ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 			defer stop()
 
 			for _, s := range servers {
 				server := s
 				go func() {
 					if err := server.Run(); err != nil && err != http.ErrServerClosed {
-						log.Fatal("shutting down ", server.Name(), " err: ", err)
+						logger.Fatal(ctx, fmt.Sprintf("shutting down %s. ", server.Name()), zap.Error(err))
 					}
 				}()
 			}
 
-			log.Info("server started")
+			logger.Info(ctx, "server started")
 			// Wait for interrupt signal to gracefully shutdown the server with a timeout of 10 seconds.
 			<-ctx.Done()
-			log.Info("server shutting down")
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			logger.Info(ctx, "server shutting down")
+			ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 			defer cancel()
 
 			for _, s := range servers {
 				if err := s.Shutdown(ctx); err != nil {
-					log.Fatal(err)
+					logger.Fatal(ctx, "error while shutting down.", zap.Error(err))
 				}
 			}
-			log.Info("server shutdown gracefully")
+			logger.Info(ctx, "server shutdown gracefully")
 		},
 	}
 	return &serverCmd

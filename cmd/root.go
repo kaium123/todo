@@ -1,13 +1,14 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 
 	"github.com/go-playground/validator/v10"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	log "github.com/zuu-development/fullstack-examination-2024/internal/log"
 	"github.com/zuu-development/fullstack-examination-2024/internal/model"
 )
 
@@ -45,6 +46,9 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	logger := log.New()
+	ctx := context.Background()
+
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
@@ -68,11 +72,11 @@ func initConfig() {
 
 	err := viper.Unmarshal(&cfg)
 	if err != nil {
-		log.Fatalf("unable to decode into struct, %v", err)
+		logger.Fatal(ctx, fmt.Sprintf("unable to decode into struct, %s", err.Error()))
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(&cfg); err != nil {
-		log.Fatalf("config validation failed: %v", err)
+		logger.Fatal(ctx, fmt.Sprintf("config validation failed: %s", err.Error()))
 	}
 }

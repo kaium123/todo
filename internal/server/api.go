@@ -4,14 +4,14 @@ package server
 import (
 	"context"
 	"fmt"
-
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	log "github.com/sirupsen/logrus"
 	"github.com/zuu-development/fullstack-examination-2024/internal/common"
 	"github.com/zuu-development/fullstack-examination-2024/internal/db"
 	"github.com/zuu-development/fullstack-examination-2024/internal/handler"
+	log "github.com/zuu-development/fullstack-examination-2024/internal/log"
 	"github.com/zuu-development/fullstack-examination-2024/internal/model"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -19,7 +19,7 @@ import (
 type todoAPIServer struct {
 	port   int
 	engine *echo.Echo
-	log    *log.Entry
+	log    *log.Logger
 	db     *gorm.DB
 }
 
@@ -29,12 +29,15 @@ type TodoAPIServerOpts struct {
 	Config     model.Config
 }
 
-// NewAPI returns a new instance of the Todo API server
-func NewAPI(opts TodoAPIServerOpts) (Server, error) {
-	logger := log.NewEntry(log.StandardLogger())
-	log.SetFormatter(&log.JSONFormatter{})
+type InitNewAPI struct {
+	TodoAPIServerOpts TodoAPIServerOpts
+	Log               *log.Logger
+}
 
-	dbInstance, err := db.New(opts.Config.SQLite.DBFilename)
+// NewAPI returns a new instance of the Todo API server
+func NewAPI(ctx context.Context, init *InitNewAPI) (Server, error) {
+
+	dbInstance, err := db.New(init.TodoAPIServerOpts.Config.SQLite.DBFilename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %v", err)
 	}
@@ -45,11 +48,11 @@ func NewAPI(opts TodoAPIServerOpts) (Server, error) {
 
 	handler.Register(engine, dbInstance)
 
-	allowOrigins := []string{opts.Config.UI.URL}
-	if opts.Config.SwaggerServer.Enable {
-		allowOrigins = append(allowOrigins, fmt.Sprintf("http://localhost:%d", opts.Config.SwaggerServer.Port))
+	allowOrigins := []string{init.TodoAPIServerOpts.Config.UI.URL}
+	if init.TodoAPIServerOpts.Config.SwaggerServer.Enable {
+		allowOrigins = append(allowOrigins, fmt.Sprintf("http://localhost:%d", init.TodoAPIServerOpts.Config.SwaggerServer.Port))
 	}
-	log.Info("CORS allowed origins: ", allowOrigins)
+	init.Log.Info(ctx, "CORS allowed origins: ", zap.Any("origins: ", allowOrigins))
 	engine.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: allowOrigins,
 		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
@@ -59,9 +62,9 @@ func NewAPI(opts TodoAPIServerOpts) (Server, error) {
 	engine.Use(requestLogger())
 
 	s := &todoAPIServer{
-		port:   opts.ListenPort,
+		port:   init.TodoAPIServerOpts.ListenPort,
 		engine: engine,
-		log:    logger,
+		log:    init.Log,
 		db:     dbInstance,
 	}
 	return s, nil
@@ -73,12 +76,12 @@ func (s *todoAPIServer) Name() string {
 
 // Run starts the Todo API server
 func (s *todoAPIServer) Run() error {
-	log.Infof("%s %s serving on port %d", s.Name(), common.GetVersion(), s.port)
+	s.log.Info(context.Background(), fmt.Sprintf("%s %s serving on port %d", s.Name(), common.GetVersion(), s.port))
 	return s.engine.Start(fmt.Sprintf(":%d", s.port))
 }
 
 // Shutdown stops the Todo API server
 func (s *todoAPIServer) Shutdown(ctx context.Context) error {
-	log.Infof("shuting down %s %s serving on port %d", s.Name(), common.GetVersion(), s.port)
+	s.log.Info(context.Background(), fmt.Sprintf("shuting down %s %s serving on port %d", s.Name(), common.GetVersion(), s.port))
 	return s.engine.Shutdown(ctx)
 }

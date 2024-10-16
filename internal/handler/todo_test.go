@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/zuu-development/fullstack-examination-2024/internal/log"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -19,21 +20,26 @@ import (
 	"github.com/zuu-development/fullstack-examination-2024/internal/service"
 )
 
+func InitSetup(t *testing.T) TodoHandler {
+	logger := log.New()
+	dbInstance, err := db.NewMemory()
+	require.NoError(t, err)
+	err = db.Migrate(dbInstance)
+	require.NoError(t, err)
+	repository := repository.NewTodo(dbInstance, logger)
+	service := service.NewTodo(repository, logger)
+	handler := NewTodo(service, logger)
+	return handler
+}
+
 func TestTodoHandler_Create(t *testing.T) {
 	type want struct {
 		StatusCode int
 		Response   []byte
 	}
-
 	e := echo.New()
 	e.Validator = &CustomValidator{validator: validator.New()}
-	dbInstance, err := db.NewMemory()
-	require.NoError(t, err)
-	err = db.Migrate(dbInstance)
-	require.NoError(t, err)
-	repository := repository.NewTodo(dbInstance)
-	service := service.NewTodo(repository)
-	handler := NewTodo(service)
+	handler := InitSetup(t)
 
 	tests := []struct {
 		name       string
@@ -106,13 +112,7 @@ func TestTodoHandler_Update(t *testing.T) {
 
 	e := echo.New()
 	e.Validator = &CustomValidator{validator: validator.New()}
-	dbInstance, err := db.NewMemory()
-	require.NoError(t, err)
-	err = db.Migrate(dbInstance)
-	require.NoError(t, err)
-	repository := repository.NewTodo(dbInstance)
-	service := service.NewTodo(repository)
-	handler := NewTodo(service)
+	handler := InitSetup(t)
 
 	tests := []struct {
 		name       string
@@ -204,13 +204,7 @@ func TestTodoHandler_Delete(t *testing.T) {
 
 	e := echo.New()
 	e.Validator = &CustomValidator{validator: validator.New()}
-	dbInstance, err := db.NewMemory()
-	require.NoError(t, err)
-	err = db.Migrate(dbInstance)
-	require.NoError(t, err)
-	repository := repository.NewTodo(dbInstance)
-	service := service.NewTodo(repository)
-	handler := NewTodo(service)
+	handler := InitSetup(t)
 
 	tests := []struct {
 		name       string
@@ -277,13 +271,7 @@ func TestTodoHandler_Find(t *testing.T) {
 
 	e := echo.New()
 	e.Validator = &CustomValidator{validator: validator.New()}
-	dbInstance, err := db.NewMemory()
-	require.NoError(t, err)
-	err = db.Migrate(dbInstance)
-	require.NoError(t, err)
-	repository := repository.NewTodo(dbInstance)
-	service := service.NewTodo(repository)
-	handler := NewTodo(service)
+	handler := InitSetup(t)
 
 	tests := []struct {
 		name       string

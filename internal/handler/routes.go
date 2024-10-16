@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
+	"github.com/zuu-development/fullstack-examination-2024/internal/log"
 	"github.com/zuu-development/fullstack-examination-2024/internal/repository"
 	"github.com/zuu-development/fullstack-examination-2024/internal/service"
 	"gorm.io/gorm"
@@ -19,9 +20,10 @@ func Register(e *echo.Echo, db *gorm.DB) {
 	api.GET("/healthz", healthHandler.Healthz)
 
 	// Todo
-	repository := repository.NewTodo(db)
-	service := service.NewTodo(repository)
-	todoHandler := NewTodo(service)
+	logger := log.New()
+	repository := repository.NewTodo(db, logger)
+	service := service.NewTodo(repository, logger)
+	todoHandler := NewTodo(service, logger)
 	todo := api.Group("/todos")
 	{
 		todo.POST("", todoHandler.Create)

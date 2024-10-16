@@ -1,12 +1,12 @@
 package handler
 
 import (
-	"net/http"
-
+	"errors"
 	"github.com/labstack/echo/v4"
-	"github.com/zuu-development/fullstack-examination-2024/internal/errors"
+	"github.com/zuu-development/fullstack-examination-2024/internal/log"
 	"github.com/zuu-development/fullstack-examination-2024/internal/model"
 	"github.com/zuu-development/fullstack-examination-2024/internal/service"
+	"net/http"
 )
 
 // TodoHandler is the request handler for the todo endpoint.
@@ -21,16 +21,15 @@ type TodoHandler interface {
 type todoHandler struct {
 	Handler
 	service service.Todo
+	log     *log.Logger
 }
 
 // NewTodo returns a new instance of the todo handler.
-func NewTodo(s service.Todo) TodoHandler {
-	return &todoHandler{service: s}
-}
-
-// CreateRequest is the request parameter for creating a new todo
-type CreateRequest struct {
-	Task string `json:"task" validate:"required"`
+func NewTodo(s service.Todo, logger *log.Logger) TodoHandler {
+	return &todoHandler{
+		log:     logger,
+		service: s,
+	}
 }
 
 // @Summary	Create a new todo
@@ -43,36 +42,22 @@ type CreateRequest struct {
 // @Failure	500		{object}	ResponseError
 // @Router		/todos [post]
 func (t *todoHandler) Create(c echo.Context) error {
-	var req CreateRequest
+	ctx := c.Request().Context()
+	var req model.CreateRequest
+	var responseErr ResponseError
+
 	if err := t.MustBind(c, &req); err != nil {
-		return c.JSON(http.StatusBadRequest,
-			ResponseError{Errors: []Error{{Code: errors.CodeBadRequest, Message: err.Error()}}})
+		t.log.Error(ctx, err.Error())
+		return c.JSON(responseErr.GetErrorResponse(http.StatusBadRequest, err))
 	}
 
-	todo, err := t.service.Create(req.Task)
+	todo, err := t.service.Create(ctx, &req)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError,
-			ResponseError{Errors: []Error{{Code: errors.CodeInternalServerError, Message: err.Error()}}})
+		t.log.Error(ctx, err.Error())
+		return c.JSON(responseErr.GetErrorResponse(http.StatusInternalServerError, err))
 	}
 
 	return c.JSON(http.StatusCreated, ResponseData{Data: todo})
-}
-
-// UpdateRequest is the request parameter for updating a todo
-type UpdateRequest struct {
-	UpdateRequestBody
-	UpdateRequestPath
-}
-
-// UpdateRequestBody is the request body for updating a todo
-type UpdateRequestBody struct {
-	Task   string       `json:"task,omitempty"`
-	Status model.Status `json:"status,omitempty"`
-}
-
-// UpdateRequestPath is the request parameter for updating a todo
-type UpdateRequestPath struct {
-	ID int `param:"id" validate:"required"`
 }
 
 // @Summary	Update a todo
@@ -86,28 +71,25 @@ type UpdateRequestPath struct {
 // @Failure	500		{object}	ResponseError
 // @Router		/todos/:id [put]
 func (t *todoHandler) Update(c echo.Context) error {
-	var req UpdateRequest
+	ctx := c.Request().Context()
+	var req model.UpdateRequest
+	var responseErr ResponseError
+
 	if err := t.MustBind(c, &req); err != nil {
-		return c.JSON(http.StatusBadRequest,
-			ResponseError{Errors: []Error{{Code: errors.CodeBadRequest, Message: err.Error()}}})
+		t.log.Error(ctx, err.Error())
+		return c.JSON(responseErr.GetErrorResponse(http.StatusBadRequest, err))
 	}
 
-	todo, err := t.service.Update(req.ID, req.Task, req.Status)
+	todo, err := t.service.Update(ctx, &req)
 	if err != nil {
-		if err == model.ErrNotFound {
-			return c.JSON(http.StatusNotFound,
-				ResponseError{Errors: []Error{{Code: errors.CodeNotFound, Message: "todo not found"}}})
+		t.log.Error(ctx, err.Error())
+		if errors.Is(err, model.ErrNotFound) {
+			return c.JSON(responseErr.GetErrorResponse(http.StatusNotFound, err))
 		}
-		return c.JSON(http.StatusInternalServerError,
-			ResponseError{Errors: []Error{{Code: errors.CodeInternalServerError, Message: err.Error()}}})
+		return c.JSON(responseErr.GetErrorResponse(http.StatusInternalServerError, err))
 	}
 
 	return c.JSON(http.StatusOK, ResponseData{Data: todo})
-}
-
-// DeleteRequest is the request parameter for deleting a todo
-type DeleteRequest struct {
-	ID int `param:"id" validate:"required"`
 }
 
 // @Summary	Delete a todo
@@ -119,26 +101,24 @@ type DeleteRequest struct {
 // @Failure	500	{object}	ResponseError
 // @Router		/todos/:id [delete]
 func (t *todoHandler) Delete(c echo.Context) error {
-	var req DeleteRequest
+	ctx := c.Request().Context()
+	var req model.DeleteRequest
+	var responseErr ResponseError
+
 	if err := t.MustBind(c, &req); err != nil {
-		return c.JSON(http.StatusBadRequest,
-			ResponseError{Errors: []Error{{Code: errors.CodeBadRequest, Message: err.Error()}}})
+		t.log.Error(ctx, err.Error())
+		return c.JSON(responseErr.GetErrorResponse(http.StatusBadRequest, err))
 	}
 
-	if err := t.service.Delete(req.ID); err != nil {
-		if err == model.ErrNotFound {
-			return c.JSON(http.StatusNotFound,
-				ResponseError{Errors: []Error{{Code: errors.CodeNotFound, Message: "todo not found"}}})
+	if err := t.service.Delete(ctx, &req); err != nil {
+		t.log.Error(ctx, err.Error())
+		if errors.Is(err, model.ErrNotFound) {
+			return c.JSON(responseErr.GetErrorResponse(http.StatusNotFound, err))
 		}
-		return c.JSON(http.StatusInternalServerError,
-			ResponseError{Errors: []Error{{Code: errors.CodeInternalServerError, Message: err.Error()}}})
+		return c.JSON(responseErr.GetErrorResponse(http.StatusInternalServerError, err))
 	}
-	return c.NoContent(http.StatusNoContent)
-}
 
-// FindRequest is the request parameter for finding a todo
-type FindRequest struct {
-	ID int `param:"id" validate:"required"`
+	return c.NoContent(http.StatusNoContent)
 }
 
 // @Summary	Find a todo
@@ -150,21 +130,24 @@ type FindRequest struct {
 // @Failure	500		{object}	ResponseError
 // @Router		/todos/:id [get]
 func (t *todoHandler) Find(c echo.Context) error {
-	var req FindRequest
+	ctx := c.Request().Context()
+	var req model.FindRequest
+	var responseErr ResponseError
+
 	if err := t.MustBind(c, &req); err != nil {
-		return c.JSON(http.StatusBadRequest,
-			ResponseError{Errors: []Error{{Code: errors.CodeBadRequest, Message: err.Error()}}})
+		t.log.Error(ctx, err.Error())
+		return c.JSON(responseErr.GetErrorResponse(http.StatusBadRequest, err))
 	}
 
-	res, err := t.service.Find(req.ID)
+	res, err := t.service.Find(ctx, &req)
 	if err != nil {
-		if err == model.ErrNotFound {
-			return c.JSON(http.StatusNotFound,
-				ResponseError{Errors: []Error{{Code: errors.CodeNotFound, Message: "todo not found"}}})
+		t.log.Error(ctx, err.Error())
+		if errors.Is(err, model.ErrNotFound) {
+			return c.JSON(responseErr.GetErrorResponse(http.StatusNotFound, err))
 		}
-		return c.JSON(http.StatusInternalServerError,
-			ResponseError{Errors: []Error{{Code: errors.CodeInternalServerError, Message: err.Error()}}})
+		return c.JSON(responseErr.GetErrorResponse(http.StatusInternalServerError, err))
 	}
+
 	return c.JSON(http.StatusOK, ResponseData{Data: res})
 }
 
@@ -174,10 +157,26 @@ func (t *todoHandler) Find(c echo.Context) error {
 // @Failure	500	{object}	ResponseError
 // @Router		/todos [get]
 func (t *todoHandler) FindAll(c echo.Context) error {
-	res, err := t.service.FindAll()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError,
-			ResponseError{Errors: []Error{{Code: errors.CodeInternalServerError, Message: err.Error()}}})
+	ctx := c.Request().Context()
+	var responseErr ResponseError
+
+	// Retrieve query parameters for 'task' and 'status'
+	task := c.QueryParam("task")
+	status := c.QueryParam("status")
+
+	// Populate request params model with extracted values
+	reqParams := &model.FindAllRequest{
+		Task:   task,
+		Status: status,
 	}
+
+	// Call the service to find all tasks based on the request params
+	res, err := t.service.FindAll(ctx, reqParams)
+	if err != nil {
+		t.log.Error(ctx, err.Error())
+		return c.JSON(responseErr.GetErrorResponse(http.StatusInternalServerError, err))
+	}
+
+	// Return the successful result
 	return c.JSON(http.StatusOK, ResponseData{Data: res})
 }

@@ -1,5 +1,7 @@
 package handler
 
+import "github.com/zuu-development/fullstack-examination-2024/internal/errors"
+
 // ResponseData is the response structure for the application.
 type ResponseData struct {
 	// Data is the response data.
@@ -16,4 +18,13 @@ type ResponseError struct {
 type Error struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+}
+
+func (re *ResponseError) GetErrorResponse(code int, err error) (int, *ResponseError) {
+	re.Errors = append(re.Errors, Error{
+		Code:    errors.ErrorCodeDescriptions[code],
+		Message: err.Error(),
+	})
+
+	return code, re
 }
