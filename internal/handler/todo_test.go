@@ -26,10 +26,11 @@ func InitSetup(t *testing.T) TodoHandler {
 	require.NoError(t, err)
 	err = db.Migrate(dbInstance)
 	require.NoError(t, err)
-	repository := repository.NewTodo(dbInstance, logger)
-	service := service.NewTodo(repository, logger)
-	handler := NewTodo(service, logger)
-	return handler
+
+	repository := repository.NewTodo(&repository.InitTodoRepository{Db: dbInstance, Log: logger})
+	service := service.NewTodo(&service.InitTodoService{Log: logger, TodoRepository: repository})
+	todoHandler := NewTodo(&InitTodoHandler{Service: service, Log: logger})
+	return todoHandler
 }
 
 func TestTodoHandler_Create(t *testing.T) {

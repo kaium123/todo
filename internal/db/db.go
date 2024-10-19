@@ -9,9 +9,12 @@ import (
 // New creates a new database connection
 func New(filename string) (*gorm.DB, error) {
 	db, err := gorm.Open(sqlite.Open(filename), &gorm.Config{})
+
 	if err != nil {
 		return nil, err
 	}
+	db = db.Debug()
+
 	return db, nil
 }
 
@@ -21,5 +24,7 @@ func NewMemory() (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	db = db.Debug()
+
 	return db, nil
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"go.uber.org/zap"
 	"net/http"
@@ -62,7 +63,7 @@ func NewServerCmd() *cobra.Command {
 			for _, s := range servers {
 				server := s
 				go func() {
-					if err := server.Run(); err != nil && err != http.ErrServerClosed {
+					if err := server.Run(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 						logger.Fatal(ctx, fmt.Sprintf("shutting down %s. ", server.Name()), zap.Error(err))
 					}
 				}()

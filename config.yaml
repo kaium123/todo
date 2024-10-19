@@ -4,3 +4,7 @@ swaggerServer:
   enable: true
 sqLite:
   dbFilename: "tmp/gorm.db"
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 5

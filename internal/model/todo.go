@@ -2,6 +2,7 @@ package model
 
 import (
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -104,6 +105,10 @@ func (t *Todo) ValidateCreateRequest() error {
 	if t.Task == "" {
 		return errors.New("task cannot be empty")
 	}
+
+	if t.Priority != TP_High && t.Priority != TP_Low && t.Priority != TP_Medium {
+		return errors.New("invalid priority not accepted")
+	}
 	// Add additional validation as needed
 	return nil
 }
@@ -115,9 +120,16 @@ func (t *Todo) PrepareUpdatedTodo(currentTodo *Todo) *Todo {
 		t.Task = currentTodo.Task
 	}
 
-	if t.Status != "" {
+	fmt.Println(t.Status)
+
+	if t.Status == "" {
 		t.Status = currentTodo.Status
 	}
+
+	fmt.Println(t.Status)
+
+	t.CreatedAt = currentTodo.CreatedAt
+	t.Priority = currentTodo.Priority
 
 	return currentTodo
 }

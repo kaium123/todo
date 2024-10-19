@@ -1,12 +1,15 @@
 // Package model provides the data models for the application.
 package model
 
+import "github.com/zuu-development/fullstack-examination-2024/internal/cache"
+
 // Config is the configuration for the application.
 type Config struct {
 	UI            UI
 	APIServer     Server
 	SwaggerServer Server
 	SQLite        SQLite
+	Redis         *cache.Config
 }
 
 // UI is the configuration for the UI.

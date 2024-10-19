@@ -5,7 +5,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var TraceIDContextKey = "trid" // keep it short
+var TraceIDContextKey = "trace_id" // keep it short
 
 // TraceID from context.
 func TraceID(ctx context.Context) (traceID string) {
@@ -70,12 +70,6 @@ func (log *Logger) With(fields ...zap.Field) *Logger {
 	return n
 }
 
-// Debug logs a message at DebugLevel. The message includes any fields passed
-// at the log site, as well as any fields accumulated on the logger.
-func (log *Logger) Debug(ctx context.Context, msg string, fields ...zap.Field) {
-	log.Logger.Debug(msg, fields...)
-}
-
 // Info logs a message at InfoLevel. The message includes any fields passed
 // at the log site, as well as any fields accumulated on the logger.
 func (log *Logger) Info(ctx context.Context, msg string, fields ...zap.Field) {
@@ -85,15 +79,6 @@ func (log *Logger) Info(ctx context.Context, msg string, fields ...zap.Field) {
 	log.Logger.Info(msg, fields...)
 }
 
-// Warn logs a message at WarnLevel. The message includes any fields passed
-// at the log site, as well as any fields accumulated on the logger.
-func (log *Logger) Warn(ctx context.Context, msg string, fields ...zap.Field) {
-	if ctx != nil {
-		fields = AddContextFields(ctx, fields...)
-	}
-	log.Logger.Warn(msg, fields...)
-}
-
 // Error logs a message at ErrorLevel. The message includes any fields passed
 // at the log site, as well as any fields accumulated on the logger.
 func (log *Logger) Error(ctx context.Context, msg string, fields ...zap.Field) {
@@ -101,30 +86,6 @@ func (log *Logger) Error(ctx context.Context, msg string, fields ...zap.Field) {
 		fields = AddContextFields(ctx, fields...)
 	}
 	log.Logger.Error(msg, fields...)
-}
-
-// DPanic logs a message at DPanicLevel. The message includes any fields
-// passed at the log site, as well as any fields accumulated on the logger.
-//
-// If the logger is in development mode, it then panics (DPanic means
-// "development panic"). This is useful for catching errors that are
-// recoverable, but shouldn't ever happen.
-func (log *Logger) DPanic(ctx context.Context, msg string, fields ...zap.Field) {
-	if ctx != nil {
-		fields = AddContextFields(ctx, fields...)
-	}
-	log.Logger.DPanic(msg, fields...)
-}
-
-// Panic logs a message at PanicLevel. The message includes any fields passed
-// at the log site, as well as any fields accumulated on the logger.
-//
-// The logger then panics, even if logging at PanicLevel is disabled.
-func (log *Logger) Panic(ctx context.Context, msg string, fields ...zap.Field) {
-	if ctx != nil {
-		fields = AddContextFields(ctx, fields...)
-	}
-	log.Logger.Panic(msg, fields...)
 }
 
 // Fatal logs a message at FatalLevel. The message includes any fields passed

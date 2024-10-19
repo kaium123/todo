@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/zuu-development/fullstack-examination-2024/internal/cache"
 	"github.com/zuu-development/fullstack-examination-2024/internal/common"
 	"github.com/zuu-development/fullstack-examination-2024/internal/db"
 	"github.com/zuu-development/fullstack-examination-2024/internal/handler"
 	log "github.com/zuu-development/fullstack-examination-2024/internal/log"
 	"github.com/zuu-development/fullstack-examination-2024/internal/model"
+
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -41,12 +43,18 @@ func NewAPI(ctx context.Context, init *InitNewAPI) (Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %v", err)
 	}
+	redisClient := cache.New(init.TodoAPIServerOpts.Config.Redis)
 
 	engine := echo.New()
 	engine.HideBanner = true
 	engine.HidePort = true
 
-	handler.Register(engine, dbInstance)
+	handler.Register(&handler.ServiceRegistry{
+		EchoEngine:  engine,
+		DBInstance:  dbInstance,
+		RedisClient: redisClient,
+		Log:         init.Log,
+	})
 
 	allowOrigins := []string{init.TodoAPIServerOpts.Config.UI.URL}
 	if init.TodoAPIServerOpts.Config.SwaggerServer.Enable {

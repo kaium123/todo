@@ -18,7 +18,7 @@ func TestRegister(t *testing.T) {
 	require.NoError(t, err)
 	err = db.Migrate(dbInstance)
 	require.NoError(t, err)
-	Register(e, dbInstance)
+	Register(&ServiceRegistry{})
 
 	// Test cases
 	tests := []struct {

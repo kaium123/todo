@@ -18,17 +18,22 @@ type TodoHandler interface {
 	FindAll(c echo.Context) error
 }
 
+type InitTodoHandler struct {
+	Service service.ITodo
+	Log     *log.Logger
+}
+
 type todoHandler struct {
 	Handler
-	service service.Todo
+	service service.ITodo
 	log     *log.Logger
 }
 
 // NewTodo returns a new instance of the todo handler.
-func NewTodo(s service.Todo, logger *log.Logger) TodoHandler {
+func NewTodo(initTodoHandler *InitTodoHandler) TodoHandler {
 	return &todoHandler{
-		log:     logger,
-		service: s,
+		log:     initTodoHandler.Log,
+		service: initTodoHandler.Service,
 	}
 }
 
