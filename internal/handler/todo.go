@@ -41,7 +41,7 @@ func NewTodo(initTodoHandler *InitTodoHandler) TodoHandler {
 // @Tags		todos
 // @Accept		json
 // @Produce	json
-// @Param		request	body		CreateRequest	true	"json"
+// @Param		request	body		model.CreateRequest	true	"json"
 // @Success	201		{object}	ResponseError{data=model.Todo}
 // @Failure	400		{object}	ResponseError
 // @Failure	500		{object}	ResponseError
@@ -69,8 +69,8 @@ func (t *todoHandler) Create(c echo.Context) error {
 // @Tags		todos
 // @Accept		json
 // @Produce	json
-// @Param		body	body		UpdateRequestBody	true	"body"
-// @Param		path	path		UpdateRequestPath	false	"path"
+// @Param		body	body		model.UpdateRequestBody	true	"body"
+// @Param		path	path		model.UpdateRequestPath	false	"path"
 // @Success	201		{object}	ResponseData{Data=model.Todo}
 // @Failure	400		{object}	ResponseError
 // @Failure	500		{object}	ResponseError
@@ -99,7 +99,7 @@ func (t *todoHandler) Update(c echo.Context) error {
 
 // @Summary	Delete a todo
 // @Tags		todos
-// @Param		path	path	DeleteRequest	false	"path"
+// @Param		path	path	model.DeleteRequest	false	"path"
 // @Success	204
 // @Failure	400	{object}	ResponseError
 // @Failure	404	{object}	ResponseError
@@ -123,12 +123,12 @@ func (t *todoHandler) Delete(c echo.Context) error {
 		return c.JSON(responseErr.GetErrorResponse(http.StatusInternalServerError, err))
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	return c.JSON(http.StatusOK, "Deleted successfully")
 }
 
 // @Summary	Find a todo
 // @Tags		todos
-// @Param		path	path		FindRequest	false	"path"
+// @Param		path	path		model.FindRequest	false	"path"
 // @Success	200		{object}	ResponseData{Data=model.Todo}
 // @Failure	400		{object}	ResponseError
 // @Failure	404		{object}	ResponseError

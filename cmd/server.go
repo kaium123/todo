@@ -46,7 +46,7 @@ func NewServerCmd() *cobra.Command {
 			servers = append(servers, apiServer)
 
 			if cfg.SwaggerServer.Enable {
-				initNewSwagger := server.InitNewSwagger{
+				initNewSwagger := &server.InitNewSwagger{
 					SwaggerServerOpts: server.SwaggerServerOpts{
 						ListenPort: cfg.SwaggerServer.Port,
 					},

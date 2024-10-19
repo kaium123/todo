@@ -28,7 +28,7 @@ type InitNewSwagger struct {
 }
 
 // NewSwagger returns a new instance of the Swagger server
-func NewSwagger(ctx context.Context, init InitNewSwagger) Server {
+func NewSwagger(ctx context.Context, init *InitNewSwagger) Server {
 
 	engine := echo.New()
 	engine.HideBanner = true

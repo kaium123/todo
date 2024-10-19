@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"github.com/zuu-development/fullstack-examination-2024/internal/log"
 	"testing"
 
 	"github.com/labstack/echo/v4"
@@ -12,7 +14,11 @@ func TestNewSwagger(t *testing.T) {
 		ListenPort: 8080,
 	}
 
-	server := NewSwagger(opts)
+	logger := log.New()
+	server := NewSwagger(context.Background(), &InitNewSwagger{
+		SwaggerServerOpts: opts,
+		Log:               logger,
+	})
 
 	assert.NotNil(t, server)
 	assert.Equal(t, "swaggerServer", server.Name())

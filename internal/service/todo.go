@@ -158,9 +158,9 @@ func (t *todoReceiver) Find(ctx context.Context, reqParams *model.FindRequest) (
 }
 func (t *todoReceiver) FindAll(ctx context.Context, reqParams *model.FindAllRequest) ([]*model.Todo, error) {
 	//// Check if the results are already cached in Redis
-	t.redisCache.DeleteAll(ctx)
+	//t.redisCache.DeleteAll(ctx)
 	all, err := t.redisCache.FindAll(ctx, reqParams)
-	if err == nil {
+	if err == nil || len(all) > 0 {
 		return all, nil
 	}
 

@@ -1,12 +1,5 @@
 basePath: /api/v1
 definitions:
-  handler.CreateRequest:
-    properties:
-      task:
-        type: string
-    required:
-    - task
-    type: object
   handler.Error:
     properties:
       code:
@@ -27,12 +20,15 @@ definitions:
           $ref: '#/definitions/handler.Error'
         type: array
     type: object
-  handler.UpdateRequestBody:
+  model.CreateRequest:
     properties:
-      status:
-        $ref: '#/definitions/model.Status'
+      priority:
+        type: string
       task:
         type: string
+    required:
+    - priority
+    - task
     type: object
   model.Status:
     enum:
@@ -50,6 +46,8 @@ definitions:
         type: string
       id:
         type: integer
+      priority:
+        $ref: '#/definitions/model.TodoPriority'
       status:
         $ref: '#/definitions/model.Status'
       task:
@@ -57,10 +55,29 @@ definitions:
       updatedAt:
         type: string
     type: object
+  model.TodoPriority:
+    enum:
+    - low
+    - medium
+    - high
+    type: string
+    x-enum-varnames:
+    - TP_Low
+    - TP_Medium
+    - TP_High
+  model.UpdateRequestBody:
+    properties:
+      status:
+        $ref: '#/definitions/model.Status'
+      task:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
   description: This is a server for fullstack-examination-2024.
+  license:
+    name: Apache 2.0
   title: fullstack-examination-2024 API
   version: 0.0.1
 paths:
@@ -111,7 +128,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handler.CreateRequest'
+          $ref: '#/definitions/model.CreateRequest'
       produces:
       - application/json
       responses:
@@ -200,7 +217,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/handler.UpdateRequestBody'
+          $ref: '#/definitions/model.UpdateRequestBody'
       - in: path
         name: id
         required: true

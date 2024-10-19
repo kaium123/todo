@@ -1,6 +1,8 @@
 package handler
 
 import (
+	cache2 "github.com/zuu-development/fullstack-examination-2024/internal/cache"
+	"github.com/zuu-development/fullstack-examination-2024/internal/log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,11 +16,22 @@ import (
 func TestRegister(t *testing.T) {
 	// Setup
 	e := echo.New()
+	cache := cache2.New(&cache2.Config{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       5,
+	})
 	dbInstance, err := db.NewMemory()
 	require.NoError(t, err)
 	err = db.Migrate(dbInstance)
 	require.NoError(t, err)
-	Register(&ServiceRegistry{})
+	logger := log.New()
+	Register(&ServiceRegistry{
+		EchoEngine:  e,
+		DBInstance:  dbInstance,
+		Log:         logger,
+		RedisClient: cache,
+	})
 
 	// Test cases
 	tests := []struct {

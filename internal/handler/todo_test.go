@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
+	cache2 "github.com/zuu-development/fullstack-examination-2024/internal/cache"
 	"github.com/zuu-development/fullstack-examination-2024/internal/log"
 	"net/http"
 	"net/http/httptest"
@@ -27,8 +28,17 @@ func InitSetup(t *testing.T) TodoHandler {
 	err = db.Migrate(dbInstance)
 	require.NoError(t, err)
 
+	redis := cache2.New(&cache2.Config{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       5,
+	})
+
+	redisRepository := repository.NewRedisCache(&repository.InitRedisCache{
+		Client: redis, Log: logger,
+	})
 	repository := repository.NewTodo(&repository.InitTodoRepository{Db: dbInstance, Log: logger})
-	service := service.NewTodo(&service.InitTodoService{Log: logger, TodoRepository: repository})
+	service := service.NewTodo(&service.InitTodoService{Log: logger, TodoRepository: repository, RedisCache: redisRepository})
 	todoHandler := NewTodo(&InitTodoHandler{Service: service, Log: logger})
 	return todoHandler
 }
@@ -50,18 +60,18 @@ func TestTodoHandler_Create(t *testing.T) {
 	}{
 		{
 			name:       "successful_create",
-			createBody: `{"task":"Created Task"}`,
+			createBody: `{"task":"Created Task","priority":"high"}`,
 			want: want{
 				StatusCode: http.StatusCreated,
-				Response:   []byte(`{"data":{"Task":"Created Task","Status":"created"}}`),
+				Response:   []byte(`{"data":{"Task":"Created Task","Status":"created","Priority":"high"}}`),
 			},
 		},
 		{
 			name:       "successful_create_but_with_ignore_status",
-			createBody: `{"task":"Created Task", "status":"done"}`,
+			createBody: `{"task":"Created Task", "status":"done","priority":"high"}`,
 			want: want{
 				StatusCode: http.StatusCreated,
-				Response:   []byte(`{"data":{"Task":"Created Task","Status":"created"}}`),
+				Response:   []byte(`{"data":{"Task":"Created Task","Status":"created","Priority":"high","ID":1}}`), // Excluded timestamps
 			},
 		},
 		{
@@ -93,9 +103,10 @@ func TestTodoHandler_Create(t *testing.T) {
 			}
 			got := rec.Body.Bytes()
 
+			// Compare ignoring CreatedAt and UpdatedAt fields
 			opts := []cmp.Option{
 				cmpTransformJSON(t),
-				ignoreMapEntires(map[string]any{"CreatedAt": 1, "UpdatedAt": 1, "ID": 1}),
+				ignoreMapEntires(map[string]any{"CreatedAt": 1, "UpdatedAt": 1, "ID": 1}), // Ignore these fields
 			}
 			if diff := cmp.Diff(got, tt.want.Response, opts...); diff != "" {
 				t.Errorf("return value mismatch (-got +want):\n%s", diff)
@@ -125,11 +136,11 @@ func TestTodoHandler_Update(t *testing.T) {
 	}{
 		{
 			name:       "successful_update",
-			createBody: `{"task":"Updated Task"}`,
-			updateBody: `{"task":"Updated Task","status":"done"}`,
+			createBody: `{"task":"Updated Task","priority":"high"}`,
+			updateBody: `{"task":"Updated Task","status":"done","priority":"high"}`,
 			want: want{
 				StatusCode: http.StatusOK,
-				Response:   []byte(`{"data":{"Task":"Updated Task","Status":"done"}}`),
+				Response:   []byte(`{"data":{"Task":"Updated Task","Status":"done"}}`), // Only Task and Status
 			},
 		},
 		{
@@ -186,9 +197,10 @@ func TestTodoHandler_Update(t *testing.T) {
 			}
 			got := rec.Body.Bytes()
 
+			// Compare ignoring CreatedAt, UpdatedAt, ID, and Priority fields
 			opts := []cmp.Option{
 				cmpTransformJSON(t),
-				ignoreMapEntires(map[string]any{"CreatedAt": 1, "UpdatedAt": 1, "ID": 1}),
+				ignoreMapEntires(map[string]any{"CreatedAt": 1, "UpdatedAt": 1, "ID": 1, "Priority": 1}), // Exclude these fields
 			}
 			if diff := cmp.Diff(got, tt.want.Response, opts...); diff != "" {
 				t.Errorf("return value mismatch (-got +want):\n%s", diff)
@@ -216,7 +228,7 @@ func TestTodoHandler_Delete(t *testing.T) {
 	}{
 		{
 			name:       "successful_delete",
-			createBody: `{"task":"Deleted Task"}`,
+			createBody: `{"task":"Deleted Task","priority":"high"}`,
 			want: want{
 				StatusCode: http.StatusNoContent,
 			},
@@ -283,10 +295,10 @@ func TestTodoHandler_Find(t *testing.T) {
 	}{
 		{
 			name:       "successful_find",
-			createBody: `{"task":"Found Task"}`,
+			createBody: `{"task":"Found Task","priority":"high"}`,
 			want: want{
 				StatusCode: http.StatusOK,
-				Response:   []byte(`{"data":{"Task":"Found Task","Status":"created"}}`),
+				Response:   []byte(`{"data":{"Task":"Found Task","Status":"created","Priority":"high"}}`),
 			},
 		},
 		{

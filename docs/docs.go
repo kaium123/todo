@@ -10,6 +10,9 @@ const docTemplate = `{
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
         "contact": {},
+        "license": {
+            "name": "Apache 2.0"
+        },
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -100,7 +103,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handler.CreateRequest"
+                            "$ref": "#/definitions/model.CreateRequest"
                         }
                     }
                 ],
@@ -209,7 +212,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handler.UpdateRequestBody"
+                            "$ref": "#/definitions/model.UpdateRequestBody"
                         }
                     },
                     {
@@ -292,17 +295,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "handler.CreateRequest": {
-            "type": "object",
-            "required": [
-                "task"
-            ],
-            "properties": {
-                "task": {
-                    "type": "string"
-                }
-            }
-        },
         "handler.Error": {
             "type": "object",
             "properties": {
@@ -334,11 +326,15 @@ const docTemplate = `{
                 }
             }
         },
-        "handler.UpdateRequestBody": {
+        "model.CreateRequest": {
             "type": "object",
+            "required": [
+                "priority",
+                "task"
+            ],
             "properties": {
-                "status": {
-                    "$ref": "#/definitions/model.Status"
+                "priority": {
+                    "type": "string"
                 },
                 "task": {
                     "type": "string"
@@ -367,6 +363,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "priority": {
+                    "$ref": "#/definitions/model.TodoPriority"
+                },
                 "status": {
                     "$ref": "#/definitions/model.Status"
                 },
@@ -374,6 +373,30 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.TodoPriority": {
+            "type": "string",
+            "enum": [
+                "low",
+                "medium",
+                "high"
+            ],
+            "x-enum-varnames": [
+                "TP_Low",
+                "TP_Medium",
+                "TP_High"
+            ]
+        },
+        "model.UpdateRequestBody": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "$ref": "#/definitions/model.Status"
+                },
+                "task": {
                     "type": "string"
                 }
             }

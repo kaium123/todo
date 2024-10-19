@@ -1,0 +1,69 @@
+.todo-main {
+    max-width: 520px;
+    margin: 20px auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+  }
+  
+  .input-group,
+  .search-section {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    width: 520px;
+  }
+
+  .left-panel {
+    width: 220px;
+  }
+
+  .right-panel {
+    width: 130px;
+  }
+
+  .same-panel {
+    width: 175px;
+  }
+  
+  .input-group input,
+  .input-group select,
+  .search-section select,
+  .search-section input {
+    padding: 10px;
+    margin-right: 10px;
+  }
+  
+  .green-button {
+    width: 120px;
+    padding: 10px 15px;
+    background-color: #28a745;
+    border: none;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .todo-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .buttons button {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+  }
+  
+  .done-task {
+    text-decoration: line-through;
+  }
+  
+  .status-message {
+    color: green;
+    margin-bottom: 10px;
+  }
+  

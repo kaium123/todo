@@ -21,12 +21,6 @@ type FindAllRequest struct {
 	Status string
 }
 
-// CreateRequest is the request parameter for creating a new todo
-type CreateRequest struct {
-	Task     string `json:"task" validate:"required"`
-	Priority string `json:"priority" validate:"required"`
-}
-
 // UpdateRequestPath is the request parameter for updating a todo
 type UpdateRequestPath struct {
 	ID int `param:"id" validate:"required"`
@@ -36,6 +30,12 @@ type UpdateRequestPath struct {
 type UpdateRequest struct {
 	UpdateRequestBody
 	UpdateRequestPath
+}
+
+// CreateRequest is the request parameter for creating a new todo
+type CreateRequest struct {
+	Task     string `json:"task" validate:"required"`
+	Priority string `json:"priority" validate:"required"`
 }
 
 // UpdateRequestBody is the request body for updating a todo
