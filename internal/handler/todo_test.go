@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	cache2 "github.com/zuu-development/fullstack-examination-2024/internal/cache"
 	"github.com/zuu-development/fullstack-examination-2024/internal/log"
@@ -37,6 +38,7 @@ func InitSetup(t *testing.T) TodoHandler {
 	redisRepository := repository.NewRedisCache(&repository.InitRedisCache{
 		Client: redis, Log: logger,
 	})
+	redisRepository.DeleteAll(context.Background())
 	repository := repository.NewTodo(&repository.InitTodoRepository{Db: dbInstance, Log: logger})
 	service := service.NewTodo(&service.InitTodoService{Log: logger, TodoRepository: repository, RedisCache: redisRepository})
 	todoHandler := NewTodo(&InitTodoHandler{Service: service, Log: logger})
@@ -359,7 +361,70 @@ func TestTodoHandler_Find(t *testing.T) {
 }
 
 func TestTodoHandler_FindAll(t *testing.T) {
-	t.Skip("Not implemented")
+	type want struct {
+		StatusCode int
+		Response   []map[string]any // Changed to a slice of maps to handle dynamic fields
+	}
+
+	e := echo.New()
+	e.Validator = &CustomValidator{validator: validator.New()}
+	handler := InitSetup(t)
+
+	tests := []struct {
+		name       string
+		createBody []string
+		want       want
+		wantErr    bool
+	}{
+		{
+			name:       "successful_find_all",
+			createBody: []string{`{"task":"Task A", "priority":"low"}`, `{"task":"Task B", "priority":"medium"}`},
+			want: want{
+				StatusCode: http.StatusOK,
+				Response: []map[string]any{
+					{"Task": "Task A", "Priority": "low"},
+					{"Task": "Task B", "Priority": "medium"},
+				},
+			},
+		},
+		{
+			name: "successful_find_all_but_empty",
+			want: want{
+				StatusCode: http.StatusOK,
+				Response:   []map[string]any{},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create tasks for the test
+			for _, body := range tt.createBody {
+				createTask(t, e, handler, body)
+			}
+
+			req := httptest.NewRequest(http.MethodGet, "/dummy/target", nil)
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+			c.SetPath("/todos")
+
+			// Execute
+			require.NoError(t, handler.FindAll(c))
+
+			// Assert
+			assert.Equal(t, tt.want.StatusCode, rec.Code)
+
+			if tt.want.Response == nil {
+				return
+			}
+
+			// Parse the response body into a map
+			var gotResponse map[string]any
+			err := json.Unmarshal(rec.Body.Bytes(), &gotResponse)
+			require.NoError(t, err)
+		})
+	}
 }
 
 func createTask(t *testing.T, e *echo.Echo, handler TodoHandler, body string) int {
