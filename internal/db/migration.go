@@ -10,5 +10,11 @@ func Migrate(db *gorm.DB) error {
 	if err := db.AutoMigrate(&model.Todo{}); err != nil {
 		return err
 	}
+
+	err := db.Exec("CREATE INDEX IF NOT EXISTS idx_status ON todos (status)").Error
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
